@@ -1,0 +1,13 @@
+Group 3 university communities.
+
+
+Tasks:
+1. Model Justification
+Explain why posts are stored under each user. What are the drawbacks for querying all academic posts?
+
+	It are published under each user as a way to organize posts by hierarchy and their disadvantages would be how slow they are to search and the more complex logic.
+
+6. Scaling Strategy
+Propose a data structure that allows fast access to trending posts as the app scales to thousands of users per community.
+
+	A possible structure would be with a new subcollection, “trend”  In which only posts that meet the requirement of having a certain number of likes are stored  and so have those publications at hand.
