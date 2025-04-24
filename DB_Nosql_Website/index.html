@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Firebase Web</title>
+    <style>
+        .result-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .book-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="queries.html"> Query</a>
+    <div>
+        <h1>Connected to Firestore.</h1>
+        <button id="loadDataBtn">Show all books in console</button>
+        <div id="booksList" class="result-section"></div>
+    </div>
+
+    <div>
+        <h1>Add book to the database</h1>
+
+        <label for="docId">Book Id:</label>
+        <input type="text" id="docId" placeholder="Ej: 1"><br><br>
+
+        <label for="title">Title:</label>
+        <input type="text" id="title" placeholder="Ej: Cien años de soledad"><br><br>
+
+        <label for="Author">Author:</label>
+        <input type="text" id="Author" placeholder="Ej: Gabriel García Márquez"><br><br>
+
+        <label for="Publisher">Publisher:</label>
+        <input type="text" id="Publisher" placeholder="Ej: Editorial Sudamericana"><br><br>
+
+        <label for="year">year:</label>
+        <input type="number" id="year" placeholder="Ej: 1967"><br><br>
+
+        <button id="addDocBtn">Add Book</button>
+        <div id="addMessage" class="result-section"></div>
+    </div>
+    
+    <div>
+        <h1>Get Book by id</h1>
+
+        <label for="getDocId">Book Id:</label>
+        <input type="text" id="getDocId" placeholder="Ej: 1"><br><br>
+
+        <button id="getDocBtn">Get Book</button>
+        <div id="bookDetails" class="result-section"></div>
+    </div>
+
+    <script type="module">
+        import { FirestoreService } from './modules/firestore_service.js';
+
+        const firestore = new FirestoreService("Bd_Ejemplo");
+
+        function displayBooks(containerId, books) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (books.length === 0) {
+                container.innerHTML = '<p>No books found</p>';
+                return;
+            }
+
+            books.forEach(book => {
+                const bookDiv = document.createElement('div');
+                bookDiv.className = 'book-item';
+                bookDiv.innerHTML = `
+                    <h3>${book.title || 'Untitled'}</h3>
+                    <p>Author: ${book.Author || 'Unknown'}</p>
+                    ${book.Publisher ? `<p>Publisher: ${book.Publisher}</p>` : ''}
+                    ${book.year ? `<p>Year: ${book.year}</p>` : ''}
+                    <small>ID: ${book.id}</small>
+                `;
+                container.appendChild(bookDiv);
+            });
+        }
+
+        function displayBookDetails(containerId, book) {
+            const container = document.getElementById(containerId);
+            if (!book) {
+                container.innerHTML = '<p>Book not found</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="book-item">
+                    <h3>${book.title || 'Untitled'}</h3>
+                    <p>Author: ${book.Author || 'Unknown'}</p>
+                    ${book.Publisher ? `<p>Publisher: ${book.Publisher}</p>` : ''}
+                    ${book.year ? `<p>Year: ${book.year}</p>` : ''}
+                    <small>ID: ${book.id}</small>
+                </div>
+            `;
+        }
+
+        document.getElementById("loadDataBtn").addEventListener("click", async () => {
+            const docs = await firestore.getAllDocuments();
+            displayBooks('booksList', docs);
+        });
+
+        document.getElementById("addDocBtn").addEventListener("click", async () => {
+            const docId = document.getElementById("docId").value.trim();
+            const title = document.getElementById("title").value.trim();
+            const Author = document.getElementById("Author").value.trim();
+            const Publisher = document.getElementById("Publisher").value.trim();
+            const yearValue = document.getElementById("year").value;
+            const year = yearValue ? parseInt(yearValue) : null;
+
+            if (!docId || !title || !Author) {
+                alert("Fill in the required fields: Book ID, Title, and Author.");
+                return;
+            }
+
+            const data = {
+                title,
+                Author,
+                Publisher,                    
+                year: isNaN(year) ? null : year 
+            };
+
+            try {
+                await firestore.PostDocument(docId, data);
+                document.getElementById('addMessage').innerHTML = `
+                    <p style="color: green;">Book added successfully!</p>
+                    <div class="book-item">
+                        <h3>${title}</h3>
+                        <p>Author: ${Author}</p>
+                        ${Publisher ? `<p>Publisher: ${Publisher}</p>` : ''}
+                        ${year ? `<p>Year: ${year}</p>` : ''}
+                        <small>ID: ${docId}</small>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('addMessage').innerHTML = `
+                    <p style="color: red;">Error adding book: ${error.message}</p>
+                `;
+            }
+        });
+
+        document.getElementById("getDocBtn").addEventListener("click", async () => {
+            const docId = document.getElementById("getDocId").value.trim();
+
+            if (!docId) {
+                alert("The book ID is needed");
+                return;
+            }
+            
+            try {
+                const doc = await firestore.getDocumentById(docId);
+                displayBookDetails('bookDetails', doc);
+            } catch (error) {
+                document.getElementById('bookDetails').innerHTML = `
+                    <p style="color: red;">Error: ${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

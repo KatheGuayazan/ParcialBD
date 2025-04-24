@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--//////////////////////////////head//////////////////////////////////-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parcial</title>
+
+    <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 2px;
+          max-width: 500px;
+          margin: auto;
+        }
+    
+        input, button {
+          display: block;
+          width: 100%;
+          margin-bottom: 15px;
+          padding: 8px;
+          font-size: 15px;
+        }
+    
+        label {
+          margin-bottom: 10px;
+          font-weight: bold;
+        }
+      </style>
+</head>
+
+<!--/////////////////////////////body///////////////////////////////////-->
+<body>
+    
+    <h1>Add new post</h1>
+
+    <div>
+        <label for="communityId">Community ID</label>
+        <input type="text" id="communityId" placeholder="Ej: communityId">
+      
+        <label for="userId">User ID</label>
+        <input type="text" id="userId" placeholder="Ej: userId">
+      
+        <label for="type">Tipo</label>
+        <input type="text" id="userId" placeholder="Ej: academic">
+      
+        <label for="likes">Likes</label>
+        <input type="number" id="likes" placeholder="0-1000" min="0" max="1000">
+      
+        <label for="status">Status</label>
+        <input type="text" id="status" placeholder="Ej: active">
+      
+        <label for="publishedAt">year of publication</label>
+        <input type="number" id="publishedAt" placeholder="Ej: 2024">
+      
+        <button id="addDocBtn">add post</button>
+    </div>
+    <!--///////////////////////////////////////module/////////////////////////////////////////////-->
+    <script type="module">
+        import { FirestoreService } from './modules/firestore_service.js';
+
+        async function CallFirestore(communityId,usersId) {
+     
+        const firestore = new FirestoreService("Communities/"+communityId+"/Users/"+usersId+"/Posts/");
+        return firestore;
+        }
+
+        document.getElementById("addDocBtn").addEventListener("click", async () => {
+        const getCommunityId = document.getElementById("communityId").value.trim();
+        const getUserId = document.getElementById("userId").value.trim();
+
+        const firestore = await CallFirestore(getCommunityId, getUserId);
+
+        const type = document.getElementById("type").value.trim();
+        const likes = document.getElementById("likes").value.trim();
+        const status = document.getElementById("status").value.trim();
+        const publishedAt = document.getElementById("publishedAt").value.trim();
+        const getPublished = publishedAt ? parseInt(publishedAt) : null;
+    
+
+        if (!type || !likes || !status || !getPublished) {
+            alert("Fill in the required fields: type, likes, status and publishedAt.");
+            return;
+        }
+
+        const data = {
+            type,
+            likes,
+            status,
+            getPublished: isNaN(getPublished) ? null : getPublished 
+        };
+    
+        await firestore.PostDocument(getUserId, data);
+        });
+    </script>
+
+  </body>
+  </html>

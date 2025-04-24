@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!--//////////////////////////////head//////////////////////////////////-->
+  <head>
+    <meta charset="UTF-8" />
+    <title>Firebase Web</title>
+    <style>
+      body {
+        text-align: center;
+      }
+      table {
+        margin: 20px auto;
+      }
+    </style>
+  </head>
+
+  <!--/////////////////////////////body///////////////////////////////////-->
+  <body>
+    <h1>Firestore Query Tester</h1>
+    <hr />
+    <!--Simple Query-->
+    <div>
+      <h2>1. Where Query</h2>
+      <label for="column">Column:</label>
+      <input type="text" id="column" placeholder="year" /><br /><br />
+
+      <label for="comparator">Comparator:</label>
+      <input
+        type="text"
+        id="comparator"
+        placeholder="==, >, <, etc"
+      /><br /><br />
+
+      <label for="value">Value:</label>
+      <input type="text" id="value" placeholder="Ej: 2000" /><br /><br />
+
+      <button id="whereQueryBtn">Run Where Query</button>
+    </div>
+    <br />
+    <hr />
+
+    <!--Multiple Query-->
+    <div>
+      <h2>2. Where Queries (multiple)</h2>
+      <div id="filtersContainer">
+        <div class="filter">
+          <input type="text" placeholder="Column" class="filterColumn" />
+          <input
+            type="text"
+            placeholder="Comparator (==, >, <, etc)"
+            class="filterComparator"
+          />
+          <input type="text" placeholder="Value" class="filterValue" />
+        </div>
+
+      </div>
+      <br />
+      <button id="addFilterBtn">Add Filter</button><br /><br />
+      <button id="multiWhereQueryBtn">Run Combined Query</button>
+    </div>
+    <br />
+    <hr />
+
+    <!--Limit Query-->
+    <div>
+      <h2>3. Order + Limit</h2>
+      <label for="orderColumn">Order by:</label>
+      <input type="text" id="orderColumn" placeholder="year" /><br /><br />
+
+      <label for="orderDir">Direction:</label>
+      <select id="orderDir">
+        <option value="asc">Asc</option>
+        <option value="desc">Desc</option></select
+      ><br /><br />
+
+      <label for="limitNum">Limit:</label>
+      <input type="number" id="limitNum" value="5" /><br /><br />
+
+      <button id="orderLimitQueryBtn">Run Order + Limit Query</button>
+    </div>
+    <br />
+    <hr />
+
+    <!--Search-->
+    <div>
+      <h2>4. Prefix Search</h2>
+      <label for="prefixColumn">Column:</label>
+      <input type="text" id="prefixColumn" placeholder="title" /><br /><br />
+
+      <label for="prefixValue">Starts with:</label>
+      <input type="text" id="prefixValue" placeholder="Harry" /><br /><br />
+
+      <button id="prefixQueryBtn">Run Prefix Search</button>
+    </div>
+    <br />
+    <hr />
+
+    <!--Results-->
+    <div>
+      <h2>Results</h2>
+      <table border="1" id="resultsTable">
+        <thead>
+          <tr>
+            <th>docId</th>
+            <th>title</th>
+            <th>Author</th>
+            <th>Publisher</th>
+            <th>year</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <!-- Results will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+
+    <script type="module">
+      import { FirestoreQuery } from "./modules/firestore_query.js";
+
+      const firestore = new FirestoreQuery("Bd_Ejemplo");
+
+      const displayResults = (docs) => {
+        const body = document.getElementById("resultsBody");
+        body.innerHTML = "";
+
+        if (!docs || docs.length === 0) {
+          const row = body.insertRow();
+          const cell = row.insertCell();
+          cell.colSpan = 5;
+          cell.textContent = "No documents found.";
+          return;
+        }
+
+        docs.forEach((doc) => {
+          const row = body.insertRow();
+          row.insertCell().textContent = doc.docId || doc.id;
+          row.insertCell().textContent = doc.title || "";
+          row.insertCell().textContent = doc.Author || "";
+          row.insertCell().textContent = doc.Publisher || "";
+          row.insertCell().textContent = doc.year || "";
+        });
+      };
+
+      // Add fields to filter to Multi Queries
+      document.getElementById("addFilterBtn").addEventListener("click", () => {
+        console.log("Add field clicked");
+        const container = document.getElementById("filtersContainer");
+        const div = document.createElement("div");
+        div.classList.add("filter");
+
+        div.innerHTML = `
+                <input type="text" placeholder="Column" class="filterColumn">
+                <input type="text" placeholder="Comparator (==, >, <, etc)" class="filterComparator">
+                <input type="text" placeholder="Value" class="filterValue">
+                `;
+
+        container.appendChild(div);
+      });
+
+      // Where Query
+      document
+        .getElementById("whereQueryBtn")
+        .addEventListener("click", async () => {
+          const column = document.getElementById("column").value.trim();
+          const comparator = document.getElementById("comparator").value.trim();
+          const valueRaw = document.getElementById("value").value.trim();
+          const value = isNaN(valueRaw) ? valueRaw : Number(valueRaw);
+          const docs = await firestore.whereQuery(column, comparator, value);
+          displayResults(docs);
+        });
+
+      // Multi
+      document
+        .getElementById("multiWhereQueryBtn")
+        .addEventListener("click", async () => {
+          const filterDivs = document.querySelectorAll(
+            "#filtersContainer .filter"
+          );
+          const filters = [];
+
+          filterDivs.forEach((div) => {
+            const column = div.querySelector(".filterColumn").value.trim();
+            const comparison = div
+              .querySelector(".filterComparator")
+              .value.trim();
+            const valueRaw = div.querySelector(".filterValue").value.trim();
+
+            if (column && comparison) {
+              const value = isNaN(valueRaw) ? valueRaw : Number(valueRaw);
+              filters.push({ column, comparison, value });
+            }
+          });
+
+          const docs = await firestore.combinedQuery(filters);
+          displayResults(docs);
+        });
+
+      // Order + Limit Query
+      document
+        .getElementById("orderLimitQueryBtn")
+        .addEventListener("click", async () => {
+          const column = document.getElementById("orderColumn").value.trim();
+          const direction = document.getElementById("orderDir").value;
+          const limitNum = parseInt(
+            document.getElementById("limitNum").value,
+            10
+          );
+          const docs = await firestore.combinedQuery(
+            [],
+            { column, direction },
+            limitNum
+          );
+          displayResults(docs);
+        });
+
+      // Prefix Search
+      document
+        .getElementById("prefixQueryBtn")
+        .addEventListener("click", async () => {
+          const column = document.getElementById("prefixColumn").value.trim();
+          const prefix = document.getElementById("prefixValue").value.trim();
+          const docs = await firestore.prefixSearch(column, prefix);
+          displayResults(docs);
+        });
+    </script>
+    <br />
+
+  </body>
+</html>
